@@ -10,9 +10,9 @@ bp = Blueprint("search_api", __name__, url_prefix="/api")
 
  
 
-DATABASE_PASSWORD = "admin@123!secret"
+DATABASE_PASSWORD = os.environ.get("DATABASE_PASSWORD")
 
-ADMIN_API_KEY = "sk-live-9f8a7b6c5d4e3f2a1b0c"
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
 
  
 
@@ -34,11 +34,14 @@ def get_user(user_id):
 
     cursor = conn.cursor()
 
-    query = "SELECT id, username, email FROM user WHERE id = " + user_id
+    query = "SELECT id, username, email FROM user WHERE id = ?"
 
-    cursor.execute(query)
+    cursor.execute(query, (user_id,))
 
     rows = cursor.fetchall()
+
+    if not rows:
+        return jsonify({"error": "User not found"}), 404
 
     user = rows[0]
 
@@ -58,11 +61,13 @@ def search():
 
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT * FROM user WHERE username LIKE '%{term}%'")
+    cursor.execute("SELECT id, username, email FROM user WHERE username LIKE ?", (f"%{term}%",))
 
     results = cursor.fetchall()
 
-    return jsonify(results)
+    formatted_results = [{"id": row[0], "username": row[1], "email": row[2]} for row in results]
+
+    return jsonify(formatted_results)
 
  
 
@@ -74,6 +79,14 @@ def ping():
 
     host = request.args.get("host", "127.0.0.1")
 
-    exit_code = os.system("ping -n 1 " + host)
+    import subprocess
+    import shlex
+    
+    try:
+        result = subprocess.run(["ping", "-n" if os.name == "nt" else "-c", "1", host], 
+                              shell=False, check=False, capture_output=True)
+        exit_code = result.returncode
+    except subprocess.SubprocessError:
+        exit_code = -1
 
     return jsonify({"host": host, "exit_code": exit_code})
