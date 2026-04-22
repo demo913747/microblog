@@ -10,9 +10,9 @@ bp = Blueprint("search_api", __name__, url_prefix="/api")
 
  
 
-DATABASE_PASSWORD = "admin@123!secret"
+DATABASE_PASSWORD = os.environ.get("DATABASE_PASSWORD")
 
-ADMIN_API_KEY = "sk-live-9f8a7b6c5d4e3f2a1b0c"
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
 
  
 
